@@ -1,0 +1,14 @@
+# Ignorar Qt / C++
+build/
+build-*/
+CMakeCache.txt
+CMakeFiles/
+*.user
+
+# Ignorar Node / Angular
+node_modules/
+dist/
+
+# Ignorar Java / Spring
+target/
+*.class

@@ -1,0 +1,9 @@
+# Ficheiros e Pastas geradas pelo Qt Creator / CMake
+build/
+build-*/
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+*.user
+*.log
+.qmake.stash
