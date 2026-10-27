@@ -4,8 +4,52 @@
 #include <QPainter>
 #include <QDateTime>
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
 
-TotemController::TotemController(QObject *parent) : QObject(parent) {}
+TotemController::TotemController(QObject *parent) : QObject(parent) {
+
+    networkManager = new QNetworkAccessManager(this);
+
+    connect(networkManager, &QNetworkAccessManager::finished, this, &TotemController::onRespostaApiRecebida);
+}
+
+void TotemController::solicitarSenha(const QString &tipoSenha){
+    QUrl url("http://localhost:5000/api/senhas");
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QJsonObject json;
+    json["tipo"] = tipoSenha;
+    QJsonDocument doc(json);
+    QByteArray data = doc.toJson();
+
+    qDebug() << "enviar requisição HTTP para API";
+    networkManager->post(request, data);
+}
+
+void TotemController::onRespostaApiRecebida(QNetworkReply *reply)
+{
+    if(reply->error() == QNetworkReply::NoError){
+        QByteArray responseData = reply->readAll();
+        qDebug() << "Sucesso! Resposta da API:" << responseData;
+
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObject = jsonResponse.object();
+
+        QString codigoGerado = jsonObject["codigo"].toString();
+
+        if(!codigoGerado.isEmpty()){
+            printTicket(codigoGerado);
+        }else{
+            qWarning() << "A API não devolveu um código válido!" << reply->errorString();
+        }
+
+    }else{
+        qDebug() << "Erro na comunicação com a API:" << reply->errorString();
+    }
+    reply->deleteLater();
+}
 
 bool TotemController::checkPrinterExists(const QString &printerName)
 {
@@ -18,7 +62,7 @@ bool TotemController::checkPrinterExists(const QString &printerName)
     return false;
 }
 
-void TotemController::printTicket(const QString &ticketType, const QString &cpf)
+void TotemController::printTicket(const QString &senha)
 {
     // O nome da tua impressora instalada no Windows
     QString targetPrinterName = "POS58DD";
@@ -30,7 +74,7 @@ void TotemController::printTicket(const QString &ticketType, const QString &cpf)
         return;
     }
 
-    // 1. Configurar o papel e a impressora
+    // Configurar o papel e a impressora
     QPrinter printer(QPrinter::HighResolution);
     printer.setPrinterName(targetPrinterName);
 
@@ -39,14 +83,14 @@ void TotemController::printTicket(const QString &ticketType, const QString &cpf)
     printer.setPageSize(pageSize);
     printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
 
-    // 2. Iniciar o Pincel
+    // Iniciar o Pincel
     QPainter painter;
     if (!painter.begin(&printer)) {
         qWarning() << "ERRO: Falha ao desenhar na impressora.";
         return;
     }
 
-    // 3. Desenhar o Talão
+    // Desenhar o Talão
     int yPos = 50;
     int margemEsquerda = 10;
     int larguraMax = printer.pageLayout().paintRectPixels(printer.resolution()).width();
@@ -68,19 +112,11 @@ void TotemController::printTicket(const QString &ticketType, const QString &cpf)
     // Tipo de Senha
     QFont fontSenha("Arial", 20, QFont::Bold);
     painter.setFont(fontSenha);
-    painter.drawText(margemEsquerda, yPos, larguraMax, 150, Qt::AlignHCenter, ticketType);
+    painter.drawText(margemEsquerda, yPos, larguraMax, 150, Qt::AlignHCenter, senha);
     yPos += 200;
 
     painter.setFont(fontSub);
     painter.drawText(margemEsquerda, yPos, larguraMax, 100, Qt::AlignHCenter, "--------------------------");
-    yPos += 150;
-
-    // Dados do Paciente
-    QFont fontDados("Arial", 10, QFont::Normal);
-    painter.setFont(fontDados);
-    painter.drawText(margemEsquerda, yPos, larguraMax, 100, Qt::AlignLeft, "CPF: " + cpf);
-    yPos += 120;
-    painter.drawText(margemEsquerda, yPos, larguraMax, 100, Qt::AlignLeft, "Data: " + QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm"));
     yPos += 150;
 
     // Rodapé
@@ -89,5 +125,5 @@ void TotemController::printTicket(const QString &ticketType, const QString &cpf)
 
     painter.end();
 
-    qDebug() << "-> SUCESSO: Talão impresso na POS58DD!";
+    qDebug() << "-> senha impressa na POS58DD!";
 }

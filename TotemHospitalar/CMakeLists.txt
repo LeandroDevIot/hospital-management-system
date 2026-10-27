@@ -5,7 +5,7 @@ project(TotemHospitalar VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick VirtualKeyboard PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Quick VirtualKeyboard PrintSupport Network)
 
 
 qt_standard_project_setup(REQUIRES 6.8)
@@ -39,7 +39,7 @@ set_target_properties(appTotemHospitalar PROPERTIES
 )
 
 
-target_link_libraries(appTotemHospitalar PRIVATE Qt6::Quick Qt6::VirtualKeyboard Qt6::PrintSupport)
+target_link_libraries(appTotemHospitalar PRIVATE Qt6::Quick Qt6::VirtualKeyboard Qt6::PrintSupport Qt6::Network)
 
 install(TARGETS appTotemHospitalar
     BUNDLE DESTINATION .
